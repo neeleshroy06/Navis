@@ -58,6 +58,9 @@ export class PcmChunkPlayer {
   }
 
   enqueuePcm16(pcm: Int16Array, sampleRate: number) {
+    if (this.ctx.state === "suspended") {
+      void this.ctx.resume();
+    }
     const n = pcm.length;
     const float32 = new Float32Array(n);
     for (let i = 0; i < n; i++) float32[i] = pcm[i] / 0x8000;

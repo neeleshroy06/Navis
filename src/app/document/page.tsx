@@ -8,6 +8,7 @@ import { GeminiLiveDocumentProvider } from "@/components/GeminiLiveDocumentProvi
 import { CriticalActionsPanel } from "@/components/CriticalActionsPanel";
 import { MedicationCalendarExport } from "@/components/MedicationCalendarExport";
 import { TalkAboutDocumentControls } from "@/components/TalkAboutDocumentControls";
+import { TranscriptPdfViewer } from "@/components/TranscriptPdfViewer";
 import { usePdfDocument } from "@/components/PdfDocumentContext";
 
 export default function DocumentPage() {
@@ -32,22 +33,18 @@ export default function DocumentPage() {
   }
 
   return (
-    <div className="flex min-h-[100dvh] flex-col">
+    <div className="flex h-[100dvh] flex-col overflow-hidden">
       <AppHeader showReupload />
 
-      <main className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-        <div className="flex min-h-[45vh] min-w-0 flex-[3] flex-col border-b border-[var(--recast-border)]/40 p-3 sm:p-4 lg:border-b-0 lg:border-r lg:pb-4">
-          <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-[var(--recast-border)]/50 bg-[var(--recast-surface-elevated)]/50 shadow-inner ring-1 ring-[var(--recast-border)]/30">
-            <iframe
-              title={fileName ? `PDF: ${fileName}` : "Uploaded PDF"}
-              src={`${pdfUrl}#view=FitH`}
-              className="h-full min-h-[40vh] w-full bg-[var(--recast-surface)] lg:min-h-0"
-            />
+      <GeminiLiveDocumentProvider>
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+          <div className="flex min-h-[45vh] min-w-0 flex-[3] flex-col border-b border-[var(--recast-border)]/40 p-3 sm:p-4 lg:border-b-0 lg:border-r lg:pb-4">
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <TranscriptPdfViewer pdfUrl={pdfUrl} fileName={fileName} />
+            </div>
           </div>
-        </div>
 
-        <aside className="flex min-h-0 w-full flex-[1] flex-col gap-4 overflow-y-auto border-[var(--recast-border)]/40 p-3 sm:p-4 lg:max-w-none lg:border-l">
-          <GeminiLiveDocumentProvider>
+          <aside className="flex min-h-0 w-full flex-[1] flex-col gap-4 overflow-y-auto border-[var(--recast-border)]/40 p-3 sm:p-4 lg:max-w-none lg:border-l">
             <div className="flex shrink-0 flex-col gap-2">
               <TalkAboutDocumentControls pdfUrl={pdfUrl} fileName={fileName} />
               <AslFingerspellingPanel />
@@ -58,9 +55,9 @@ export default function DocumentPage() {
 
               <CriticalActionsPanel />
             </div>
-          </GeminiLiveDocumentProvider>
-        </aside>
-      </main>
+          </aside>
+        </main>
+      </GeminiLiveDocumentProvider>
     </div>
   );
 }

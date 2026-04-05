@@ -20,6 +20,11 @@ import {
   isWeakTextContent,
   renderFirstPageJpegBase64,
 } from "@/lib/pdfExtract";
+import {
+  buildDocumentIndexFromUrl,
+  buildLiveSystemInstruction,
+  type DocumentIndex,
+} from "@/lib/documentIndex";
 
 export type LiveDocStatus = "idle" | "connecting" | "live" | "error";
 
@@ -159,7 +164,16 @@ export function useGeminiLiveDocument() {
       setInputMode("voice");
 
       try {
+        // Unlock Web Audio in the same user-gesture turn as the click. If we wait until
+        // after extractPdfText / network work, browsers may keep AudioContext suspended
+        // and Gemini output will be silent.
+        const player = new PcmChunkPlayer(LIVE_OUTPUT_SAMPLE_RATE);
+        playerRef.current = player;
+        await player.resume();
+
+        const indexPromise = buildDocumentIndexFromUrl(pdfUrl).catch(() => null as DocumentIndex | null);
         const text = await extractPdfText(pdfUrl);
+        const documentIndex = await indexPromise;
         setDocumentExtractedText(text.slice(0, 96_000));
         const weak = isWeakTextContent(text);
         let jpegBase64: string | null = null;
@@ -173,8 +187,6 @@ export function useGeminiLiveDocument() {
 
         const ai = new GoogleGenAI({ apiKey });
 
-        const player = new PcmChunkPlayer(LIVE_OUTPUT_SAMPLE_RATE);
-        playerRef.current = player;
         await player.resume();
         let resolveSetup: (() => void) | null = null;
         const setupReady = new Promise<void>((resolve) => {
@@ -197,7 +209,7 @@ export function useGeminiLiveDocument() {
             systemInstruction: {
               parts: [
                 {
-                  text: `You are a compassionate assistant helping the user understand a document (often health-related). Answer in short, clear spoken sentences. Speak naturally, like a human-to-human conversation. Stay grounded in the document content you receive. If something is missing or unclear, ask a brief clarifying question.`,
+                  text: buildLiveSystemInstruction(documentIndex),
                 },
               ],
             },

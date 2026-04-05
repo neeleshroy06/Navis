@@ -3,8 +3,9 @@ import type { PDFDocumentProxy } from "pdfjs-dist";
 const MAX_CHARS = 60_000;
 
 let workerConfigured = false;
+const PDF_LOAD_CACHE = new Map<string, Promise<PDFDocumentProxy>>();
 
-async function loadPdfjs() {
+export async function loadPdfjs() {
   const pdfjs = await import("pdfjs-dist");
   if (typeof window !== "undefined" && !workerConfigured) {
     pdfjs.GlobalWorkerOptions.workerSrc = `${window.location.origin}/pdf.worker.min.mjs`;
@@ -14,11 +15,20 @@ async function loadPdfjs() {
 }
 
 export async function loadPdfFromUrl(pdfUrl: string): Promise<PDFDocumentProxy> {
-  const pdfjs = await loadPdfjs();
-  const res = await fetch(pdfUrl);
-  const buf = await res.arrayBuffer();
-  const task = pdfjs.getDocument({ data: buf });
-  return task.promise;
+  if (!PDF_LOAD_CACHE.has(pdfUrl)) {
+    PDF_LOAD_CACHE.set(
+      pdfUrl,
+      (async () => {
+        const pdfjs = await loadPdfjs();
+        const res = await fetch(pdfUrl);
+        const buf = await res.arrayBuffer();
+        const task = pdfjs.getDocument({ data: buf });
+        return task.promise;
+      })(),
+    );
+  }
+
+  return PDF_LOAD_CACHE.get(pdfUrl)!;
 }
 
 /** Concatenate text from all pages; truncated to MAX_CHARS. */
