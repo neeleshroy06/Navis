@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
@@ -17,7 +17,9 @@ import {
 import { FeaturesScrollSection } from "@/components/features/FeaturesScrollSection";
 import type { FeatureItem } from "@/components/features/FeaturesScrollSection";
 import { AppHeader } from "@/components/AppHeader";
+import { PrivacyBrief } from "@/components/PrivacyBrief";
 import { usePdfDocument } from "@/components/PdfDocumentContext";
+import { hasPrivacyBriefAcknowledgment } from "@/lib/privacyBriefStorage";
 import { isPdfFile } from "@/lib/pdf";
 
 const FEATURES: FeatureItem[] = [
@@ -81,6 +83,19 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { setPdfFromFile } = usePdfDocument();
   const router = useRouter();
+  const [privacyBriefOpen, setPrivacyBriefOpen] = useState(false);
+
+  const openFilePicker = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleUploadPdfClick = useCallback(() => {
+    if (hasPrivacyBriefAcknowledgment()) {
+      openFilePicker();
+      return;
+    }
+    setPrivacyBriefOpen(true);
+  }, [openFilePicker]);
 
   const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -103,6 +118,12 @@ export default function Home() {
         />
         <AppHeader />
 
+        <PrivacyBrief
+          open={privacyBriefOpen}
+          onOpenChange={setPrivacyBriefOpen}
+          onContinue={openFilePicker}
+        />
+
         <section className="relative flex flex-1 flex-col justify-center px-5 pb-16 pt-10 sm:px-10 sm:pb-20">
           <div
             aria-hidden
@@ -119,7 +140,7 @@ export default function Home() {
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={handleUploadPdfClick}
                 className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[var(--recast-accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.22)_inset,0_2px_8px_rgba(11,191,11,0.25)] ring-1 ring-[var(--recast-accent-hover)]/35 transition hover:bg-[var(--recast-accent-hover)] dark:shadow-[0_1px_0_rgba(255,255,255,0.12)_inset,0_2px_12px_rgba(0,0,0,0.35)]"
               >
                 <FileText className="h-4 w-4 shrink-0" strokeWidth={2} />
@@ -132,7 +153,7 @@ export default function Home() {
                 className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-[var(--recast-border)] bg-[var(--recast-surface-elevated)]/90 px-4 py-2.5 text-sm font-medium text-[var(--recast-text-muted)] opacity-80"
               >
                 <Puzzle className="h-4 w-4" strokeWidth={2} />
-                Use extension
+                View demo
               </button>
             </div>
           </div>

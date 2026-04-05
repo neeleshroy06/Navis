@@ -15,7 +15,6 @@ Documents stay in the browser session only—nothing is persisted on Recast’s 
 - [Tech stack](#tech-stack)
 - [Architecture (high level)](#architecture-high-level)
 - [Privacy and data](#privacy-and-data)
-- [Demonstrating Recast](#demonstrating-recast)
 - [Requirements](#requirements)
 - [Environment variables](#environment-variables)
 - [Getting started](#getting-started)

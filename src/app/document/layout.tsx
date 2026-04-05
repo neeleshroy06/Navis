@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Document — Recast",
-  description: "View your document and explore Recast tools.",
+  title: "Navis",
+  description: "View your document and explore Navis tools.",
 };
 
 export default function DocumentRouteLayout({

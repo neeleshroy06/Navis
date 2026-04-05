@@ -1,6 +1,6 @@
 "use client";
 
-import { Accessibility, Camera, CameraOff, Delete, Send } from "lucide-react";
+import { Camera, CameraOff, Delete, Send } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useGeminiLiveDocumentContext } from "@/components/GeminiLiveDocumentProvider";
 import {
@@ -444,7 +444,7 @@ export function AslFingerspellingPanel() {
         ) : (
           <Camera className="h-4 w-4 shrink-0" strokeWidth={2} />
         )}
-        {aslOn ? "Stop ASL spelling" : "ASL spelling (camera)"}
+        {aslOn ? "Stop ASL mode" : "ASL mode (uses camera)"}
       </button>
 
       {!live ? (
@@ -538,13 +538,6 @@ export function AslFingerspellingPanel() {
           </div>
         </div>
       ) : null}
-
-      <p className="flex items-start gap-2 text-[10px] leading-relaxed text-[var(--recast-text-muted)]">
-        <Accessibility className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-        Each letter uses a ~1s window: whatever letter is recognized most often in that window is
-        committed (no need to freeze the pose). Keep your hand in view between letters of the same word so a
-        space is not inserted. J and Z normally use motion; recognition here is static only.
-      </p>
     </div>
   );
 }

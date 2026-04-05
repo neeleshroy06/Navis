@@ -17,9 +17,12 @@ const geistMono = Geist_Mono({
 const themeInitScript = `(function(){try{var k='recast-theme';var s=localStorage.getItem(k);if(s==='dark')document.documentElement.classList.add('dark');else if(s==='light')document.documentElement.classList.remove('dark');else if(window.matchMedia('(prefers-color-scheme:dark)').matches)document.documentElement.classList.add('dark');}catch(e){}})();`;
 
 export const metadata: Metadata = {
-  title: "Recast — Understand your care. Act with confidence.",
+  title: "Navis",
   description:
     "We help patients not just read their records — but actually know what to do.",
+  icons: {
+    icon: "/logo.svg",
+  },
 };
 
 export default function RootLayout({

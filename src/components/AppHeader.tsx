@@ -42,14 +42,14 @@ export function AppHeader({ showReupload = false }: Props) {
             <Image
               src="/logo.svg"
               alt=""
-              width={28}
-              height={28}
-              className="opacity-95"
+              width={40}
+              height={40}
+              className="h-full w-full object-contain"
               unoptimized
             />
           </div>
           <span className="text-xl font-semibold tracking-tight text-[var(--recast-text)] sm:text-2xl">
-            Recast
+            Navis
           </span>
         </Link>
 
@@ -58,11 +58,11 @@ export function AppHeader({ showReupload = false }: Props) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              aria-label="Re-upload PDF"
+              aria-label="Upload PDF"
               className="inline-flex items-center gap-2 rounded-xl border border-[var(--recast-border)] bg-[var(--recast-surface-elevated)]/90 px-3 py-2 text-sm font-medium text-[var(--recast-text)] shadow-sm transition hover:border-[var(--recast-accent)] hover:text-[var(--recast-accent)] sm:px-4"
             >
               <Upload className="h-4 w-4 shrink-0" strokeWidth={2} />
-              Re-upload
+              Upload
             </button>
           ) : null}
           <ThemeToggle />

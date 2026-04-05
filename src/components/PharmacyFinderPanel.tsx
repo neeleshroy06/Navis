@@ -26,10 +26,6 @@ export function PharmacyFinderPanel() {
           <h2 className="text-sm font-semibold tracking-tight text-[var(--recast-text)]">
             Find nearby pharmacies
           </h2>
-          <p className="mt-1 text-xs text-[var(--recast-text-muted)]">
-            United States only. Enter your ZIP — we open Google Maps with a search for pharmacies near that
-            area.
-          </p>
 
           <form
             className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-stretch"

@@ -52,9 +52,9 @@ export default function DocumentPage() {
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col gap-4">
-              <MedicationCalendarExport />
-
               <CriticalActionsPanel />
+
+              <MedicationCalendarExport />
 
               <PharmacyFinderPanel />
             </div>
