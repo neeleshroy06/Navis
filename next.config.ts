@@ -1,14 +1,15 @@
 import path from "path";
+import { fileURLToPath } from "url";
 import type { NextConfig } from "next";
 
-/**
- * You have another `package-lock.json` higher in the tree (e.g. home). Next.js
- * would otherwise pick that as the Turbopack root and `src/app` routes break
- * with 404. Pin the root to this project directory.
- */
+/** Absolute path to this repo (same folder as `package.json`). */
+const projectRoot = path.dirname(fileURLToPath(import.meta.url));
+
 const nextConfig: NextConfig = {
   turbopack: {
-    root: path.resolve(__dirname),
+    // Picks this project when a `package-lock.json` also exists higher in the tree
+    // (e.g. under your user profile). Avoids the “inferred workspace root” warning.
+    root: projectRoot,
   },
 };
 
