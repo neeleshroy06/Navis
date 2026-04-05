@@ -133,15 +133,6 @@ function isInterrupted(msg: LiveServerMessage): boolean {
   return Boolean(sc?.interrupted);
 }
 
-function getTranscript(
-  msg: LiveServerMessage,
-  key: "inputTranscription" | "outputTranscription",
-): string | null {
-  const sc = getServerContent(msg);
-  const entry = sc?.[key] as Record<string, unknown> | undefined;
-  return typeof entry?.text === "string" && entry.text.trim() ? entry.text : null;
-}
-
 function getTranscriptMeta(
   msg: LiveServerMessage,
   key: "inputTranscription" | "outputTranscription",
@@ -185,6 +176,8 @@ export function useGeminiLiveDocument() {
   const [heardText, setHeardText] = useState("");
   const [replyText, setReplyText] = useState("");
   const [replyTurnId, setReplyTurnId] = useState(0);
+  /** Bumps when the user finishes a spoken question or sends text — for clearing PDF highlights. */
+  const [userInputTurnId, setUserInputTurnId] = useState(0);
   /** PDF text when a live session starts (medication export + critical steps). */
   const [documentExtractedText, setDocumentExtractedText] = useState("");
   const [phiRedactionSummary, setPhiRedactionSummary] = useState<PhiRedactionSummary[]>([]);
@@ -204,6 +197,7 @@ export function useGeminiLiveDocument() {
     assistantTurnCanResetRef.current = false;
     setReplyText("");
     setReplyTurnId(0);
+    setUserInputTurnId(0);
   }, []);
 
   const pushAssistantReply = useCallback((incomingText: string, canResetAfterMessage: boolean) => {
@@ -284,6 +278,7 @@ export function useGeminiLiveDocument() {
     setError(null);
     setReplyText("");
     setReplyTurnId(0);
+    setUserInputTurnId(0);
     setPhiRedactionSummary([]);
     setPhiRedactionTotal(0);
   }, [stopMicPipeline]);
@@ -373,9 +368,12 @@ export function useGeminiLiveDocument() {
                 resolveSetup?.();
                 resolveSetup = null;
               }
-              const inputText = getTranscript(message, "inputTranscription");
-              if (inputText) {
-                setHeardText(inputText);
+              const inputTranscript = getTranscriptMeta(message, "inputTranscription");
+              if (inputTranscript.text) {
+                setHeardText(inputTranscript.text);
+              }
+              if (inputTranscript.finished) {
+                setUserInputTurnId((current) => current + 1);
               }
               const serverContent = getServerContent(message);
               const outputTranscript = getTranscriptMeta(message, "outputTranscription");
@@ -483,6 +481,7 @@ export function useGeminiLiveDocument() {
     const t = text.trim();
     if (!s || !t) return;
     s.sendRealtimeInput({ text: t });
+    setUserInputTurnId((current) => current + 1);
   }, []);
 
   const setAslMode = useCallback(
@@ -527,6 +526,7 @@ export function useGeminiLiveDocument() {
     heardText,
     replyText,
     replyTurnId,
+    userInputTurnId,
     documentExtractedText,
     phiRedactionSummary,
     phiRedactionTotal,

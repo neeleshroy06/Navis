@@ -341,7 +341,7 @@ export function TranscriptPdfViewer({
   pdfUrl: string;
   fileName: string | null;
 }) {
-  const { replyText, replyTurnId, status } = useGeminiLiveDocumentContext();
+  const { replyText, replyTurnId, userInputTurnId, status } = useGeminiLiveDocumentContext();
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [documentIndex, setDocumentIndex] = useState<DocumentIndex | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -353,6 +353,7 @@ export function TranscriptPdfViewer({
   const viewerScrollRef = useRef<HTMLDivElement | null>(null);
   const parserRef = useRef<TranscriptParser | null>(null);
   const activeReplyTurnRef = useRef<number | null>(null);
+  const lastUserInputTurnRef = useRef<number | null>(null);
   const actionQueueRef = useRef(Promise.resolve());
   const responseVersionRef = useRef(0);
   const indicatorTimerRef = useRef<number | null>(null);
@@ -389,7 +390,7 @@ export function TranscriptPdfViewer({
 
     indicatorTimerRef.current = window.setTimeout(() => {
       setIndicatorVisible(false);
-    }, 4000);
+    }, 5000);
   }, []);
 
   const waitForTextLayer = useCallback(async (pageNumber: number) => {
@@ -452,12 +453,29 @@ export function TranscriptPdfViewer({
     [waitForTextLayer],
   );
 
-  const beginNewResponse = useCallback(() => {
+  /** New Gemini reply: reset parser only; keep PDF highlights until the user speaks again. */
+  const beginNewAssistantTurn = useCallback(() => {
+    responseVersionRef.current += 1;
+    parserRef.current?.reset();
+    setReferencedPage(null);
+    setIndicatorVisible(false);
+    if (indicatorTimerRef.current) {
+      window.clearTimeout(indicatorTimerRef.current);
+      indicatorTimerRef.current = null;
+    }
+  }, []);
+
+  /** New PDF, session idle, or unmount: full reset including highlights. */
+  const resetViewerCompletely = useCallback(() => {
     responseVersionRef.current += 1;
     parserRef.current?.reset();
     clearHighlights();
     setReferencedPage(null);
     setIndicatorVisible(false);
+    if (indicatorTimerRef.current) {
+      window.clearTimeout(indicatorTimerRef.current);
+      indicatorTimerRef.current = null;
+    }
   }, [clearHighlights]);
 
   const executeActions = useCallback(
@@ -470,11 +488,6 @@ export function TranscriptPdfViewer({
         if (action.type === "scroll_to_page") {
           await scrollToPage(action.page);
           continue;
-        }
-
-        if (action.page) {
-          await scrollToPage(action.page);
-          await sleep(260);
         }
 
         await highlightText(action.text, action.page, action.style ?? "default");
@@ -502,7 +515,7 @@ export function TranscriptPdfViewer({
     setDocumentIndex(null);
     setCurrentPage(1);
     activeReplyTurnRef.current = null;
-    beginNewResponse();
+    resetViewerCompletely();
 
     const load = async () => {
       try {
@@ -537,7 +550,7 @@ export function TranscriptPdfViewer({
       parserRef.current?.reset();
       clearHighlights();
     };
-  }, [beginNewResponse, clearHighlights, pdfUrl]);
+  }, [clearHighlights, pdfUrl, resetViewerCompletely]);
 
   useEffect(() => {
     if (!documentIndex) {
@@ -552,9 +565,18 @@ export function TranscriptPdfViewer({
   }, [documentIndex, enqueueActions]);
 
   useEffect(() => {
+    if (lastUserInputTurnRef.current === null) {
+      lastUserInputTurnRef.current = userInputTurnId;
+    } else if (lastUserInputTurnRef.current !== userInputTurnId) {
+      lastUserInputTurnRef.current = userInputTurnId;
+      clearHighlights();
+    }
+  }, [userInputTurnId, clearHighlights]);
+
+  useEffect(() => {
     if (status === "idle" || status === "connecting") {
       activeReplyTurnRef.current = null;
-      beginNewResponse();
+      resetViewerCompletely();
       return;
     }
 
@@ -565,11 +587,11 @@ export function TranscriptPdfViewer({
 
     if (activeReplyTurnRef.current !== replyTurnId) {
       activeReplyTurnRef.current = replyTurnId;
-      beginNewResponse();
+      beginNewAssistantTurn();
     }
 
     parserRef.current.updateTranscript(nextReply);
-  }, [beginNewResponse, replyText, replyTurnId, status]);
+  }, [beginNewAssistantTurn, replyText, replyTurnId, resetViewerCompletely, status]);
 
   useEffect(() => {
     const container = viewerScrollRef.current;

@@ -156,6 +156,7 @@ function summarisePage(headings: string[], terms: string[]): string {
 export async function buildDocumentIndex(pdfDocument: PDFDocumentProxy): Promise<DocumentIndex> {
   const pages: Record<number, IndexedPdfPage> = {};
   const headingMap: Record<string, number> = {};
+  const headingOccurrences = new Map<string, Set<number>>();
   const termMap: Record<string, number[]> = {};
 
   for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber += 1) {
@@ -186,7 +187,13 @@ export async function buildDocumentIndex(pdfDocument: PDFDocumentProxy): Promise
     };
 
     for (const heading of headings) {
-      headingMap[normalizeSearchText(heading)] = pageNumber;
+      const normalizedHeading = normalizeSearchText(heading);
+      if (!normalizedHeading) {
+        continue;
+      }
+      const pagesForHeading = headingOccurrences.get(normalizedHeading) ?? new Set<number>();
+      pagesForHeading.add(pageNumber);
+      headingOccurrences.set(normalizedHeading, pagesForHeading);
     }
 
     for (const term of terms) {
@@ -206,6 +213,13 @@ export async function buildDocumentIndex(pdfDocument: PDFDocumentProxy): Promise
   const pageSummary = Object.values(pages)
     .map((page) => `Page ${page.pageNumber}: ${escapePromptLine(page.summary)}`)
     .join("\n");
+
+  for (const [heading, pagesForHeading] of headingOccurrences.entries()) {
+    if (pagesForHeading.size !== 1) {
+      continue;
+    }
+    headingMap[heading] = Array.from(pagesForHeading)[0];
+  }
 
   return {
     pageCount: pdfDocument.numPages,

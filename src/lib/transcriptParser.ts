@@ -179,7 +179,6 @@ export class TranscriptParser {
         continue;
       }
 
-      actions.push({ type: "scroll_to_page", page, priority: 1 });
       actions.push({
         type: "highlight_text",
         text: heading,
