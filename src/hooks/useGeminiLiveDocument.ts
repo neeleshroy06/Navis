@@ -23,6 +23,8 @@ import {
 
 export type LiveDocStatus = "idle" | "connecting" | "live" | "error";
 
+export type LiveInputMode = "voice" | "asl";
+
 function getServerContent(msg: LiveServerMessage): Record<string, unknown> | undefined {
   const raw = msg as unknown as Record<string, unknown>;
   return (raw.serverContent ?? raw.server_content) as Record<string, unknown> | undefined;
@@ -78,21 +80,46 @@ export function useGeminiLiveDocument() {
   const [micMuted, setMicMuted] = useState(false);
   const [heardText, setHeardText] = useState("");
   const [replyText, setReplyText] = useState("");
+  const [inputMode, setInputMode] = useState<LiveInputMode>("voice");
 
   const sessionRef = useRef<Session | null>(null);
   const playerRef = useRef<PcmChunkPlayer | null>(null);
   const micRef = useRef<MicCapture | null>(null);
   const micMutedRef = useRef(false);
+  const inputModeRef = useRef<LiveInputMode>("voice");
 
-  const stopSession = useCallback(() => {
-    micMutedRef.current = false;
-    setMicMuted(false);
+  const stopMicPipeline = useCallback(() => {
     try {
       micRef.current?.stop();
     } catch {
       /* ignore */
     }
     micRef.current = null;
+  }, []);
+
+  const startMicPipeline = useCallback(async () => {
+    const sendAudio = (b64: string) => {
+      const s = sessionRef.current;
+      if (!s || micMutedRef.current || inputModeRef.current !== "voice") return;
+      s.sendRealtimeInput({
+        audio: { data: b64, mimeType: "audio/pcm;rate=16000" },
+      });
+    };
+    micRef.current = await startMicPcmCapture(
+      sendAudio,
+      () => !micMutedRef.current && inputModeRef.current === "voice",
+      () => {
+        playerRef.current?.flush();
+      },
+    );
+  }, []);
+
+  const stopSession = useCallback(() => {
+    micMutedRef.current = false;
+    setMicMuted(false);
+    inputModeRef.current = "voice";
+    setInputMode("voice");
+    stopMicPipeline();
     try {
       sessionRef.current?.close();
     } catch {
@@ -107,7 +134,7 @@ export function useGeminiLiveDocument() {
     playerRef.current = null;
     setStatus("idle");
     setError(null);
-  }, []);
+  }, [stopMicPipeline]);
 
   const startSession = useCallback(
     async (pdfUrl: string, fileName: string | null) => {
@@ -125,6 +152,8 @@ export function useGeminiLiveDocument() {
       setReplyText("");
       micMutedRef.current = false;
       setMicMuted(false);
+      inputModeRef.current = "voice";
+      setInputMode("voice");
 
       try {
         const text = await extractPdfText(pdfUrl);
@@ -239,22 +268,8 @@ export function useGeminiLiveDocument() {
         }
         session.sendRealtimeInput({ text: seedText });
 
-        const sendAudio = (b64: string) => {
-          const s = sessionRef.current;
-          if (!s || micMutedRef.current) return;
-          s.sendRealtimeInput({
-            audio: { data: b64, mimeType: "audio/pcm;rate=16000" },
-          });
-        };
-
         try {
-          micRef.current = await startMicPcmCapture(
-            sendAudio,
-            () => !micMutedRef.current,
-            () => {
-              playerRef.current?.flush();
-            },
-          );
+          await startMicPipeline();
         } catch (micErr) {
           try {
             session.close();
@@ -279,10 +294,42 @@ export function useGeminiLiveDocument() {
         setStatus("error");
       }
     },
-    [stopSession],
+    [stopSession, startMicPipeline],
+  );
+
+  const sendUserText = useCallback((text: string) => {
+    const s = sessionRef.current;
+    const t = text.trim();
+    if (!s || !t) return;
+    s.sendRealtimeInput({ text: t });
+  }, []);
+
+  const setAslMode = useCallback(
+    (enabled: boolean) => {
+      const s = sessionRef.current;
+      if (!s) return;
+      if (enabled) {
+        inputModeRef.current = "asl";
+        setInputMode("asl");
+        micMutedRef.current = true;
+        setMicMuted(true);
+        stopMicPipeline();
+        s.sendRealtimeInput({ audioStreamEnd: true });
+      } else {
+        inputModeRef.current = "voice";
+        setInputMode("voice");
+        micMutedRef.current = false;
+        setMicMuted(false);
+        void startMicPipeline().catch(() => {
+          /* mic permission may fail; leave voice path best-effort */
+        });
+      }
+    },
+    [stopMicPipeline, startMicPipeline],
   );
 
   const toggleMic = useCallback(() => {
+    if (inputModeRef.current === "asl") return;
     const s = sessionRef.current;
     const next = !micMutedRef.current;
     micMutedRef.current = next;
@@ -298,8 +345,11 @@ export function useGeminiLiveDocument() {
     micMuted,
     heardText,
     replyText,
+    inputMode,
     startSession,
     stopSession,
     toggleMic,
+    sendUserText,
+    setAslMode,
   };
 }

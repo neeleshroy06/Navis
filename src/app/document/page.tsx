@@ -2,8 +2,9 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Accessibility } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
+import { AslFingerspellingPanel } from "@/components/AslFingerspellingPanel";
+import { GeminiLiveDocumentProvider } from "@/components/GeminiLiveDocumentProvider";
 import { TalkAboutDocumentControls } from "@/components/TalkAboutDocumentControls";
 import { usePdfDocument } from "@/components/PdfDocumentContext";
 
@@ -44,16 +45,12 @@ export default function DocumentPage() {
         </div>
 
         <aside className="flex min-h-0 w-full flex-[1] flex-col gap-4 overflow-y-auto border-[var(--recast-border)]/40 p-3 sm:p-4 lg:max-w-none lg:border-l">
-          <div className="flex shrink-0 flex-col gap-2">
-            <TalkAboutDocumentControls pdfUrl={pdfUrl} fileName={fileName} />
-            <button
-              type="button"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--recast-border)] bg-[var(--recast-surface-elevated)]/90 px-4 py-3 text-sm font-medium text-[var(--recast-text)] shadow-sm transition hover:border-[var(--recast-accent)] hover:text-[var(--recast-accent)]"
-            >
-              <Accessibility className="h-4 w-4 shrink-0" strokeWidth={2} />
-              ALS mode
-            </button>
-          </div>
+          <GeminiLiveDocumentProvider>
+            <div className="flex shrink-0 flex-col gap-2">
+              <TalkAboutDocumentControls pdfUrl={pdfUrl} fileName={fileName} />
+              <AslFingerspellingPanel />
+            </div>
+          </GeminiLiveDocumentProvider>
 
           <div className="flex min-h-0 flex-1 flex-col gap-4">
             <section className="rounded-2xl border border-[var(--recast-border)]/60 bg-[var(--recast-surface-elevated)]/80 p-4 ring-1 ring-[var(--recast-border)]/25">

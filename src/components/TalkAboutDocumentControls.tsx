@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, MessageSquare, Mic, MicOff, Square } from "lucide-react";
-import { useGeminiLiveDocument } from "@/hooks/useGeminiLiveDocument";
+import { useGeminiLiveDocumentContext } from "@/components/GeminiLiveDocumentProvider";
 
 type Props = {
   pdfUrl: string;
@@ -15,11 +15,13 @@ export function TalkAboutDocumentControls({ pdfUrl, fileName }: Props) {
     micMuted,
     heardText,
     replyText,
+    inputMode,
     startSession,
     stopSession,
     toggleMic,
-  } =
-    useGeminiLiveDocument();
+  } = useGeminiLiveDocumentContext();
+
+  const aslActive = inputMode === "asl";
 
   if (status === "connecting") {
     return (
@@ -36,16 +38,23 @@ export function TalkAboutDocumentControls({ pdfUrl, fileName }: Props) {
         <div className="flex w-full gap-2">
           <button
             type="button"
+            disabled={aslActive}
             onClick={() => toggleMic()}
-            title={micMuted ? "Unmute microphone" : "Mute microphone"}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--recast-border)] bg-[var(--recast-surface-elevated)]/90 px-3 py-3 text-sm font-medium text-[var(--recast-text)] shadow-sm transition hover:border-[var(--recast-accent)] hover:text-[var(--recast-accent)]"
+            title={
+              aslActive
+                ? "Microphone off while ASL mode is on"
+                : micMuted
+                  ? "Unmute microphone"
+                  : "Mute microphone"
+            }
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--recast-border)] bg-[var(--recast-surface-elevated)]/90 px-3 py-3 text-sm font-medium text-[var(--recast-text)] shadow-sm transition hover:border-[var(--recast-accent)] hover:text-[var(--recast-accent)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {micMuted ? (
+            {micMuted || aslActive ? (
               <MicOff className="h-4 w-4 shrink-0" strokeWidth={2} />
             ) : (
               <Mic className="h-4 w-4 shrink-0" strokeWidth={2} />
             )}
-            {micMuted ? "Mic off" : "Mic on"}
+            {aslActive ? "Mic off (ASL)" : micMuted ? "Mic off" : "Mic on"}
           </button>
           <button
             type="button"
@@ -57,7 +66,9 @@ export function TalkAboutDocumentControls({ pdfUrl, fileName }: Props) {
             Stop
           </button>
         </div>
-        <p className="text-center text-xs text-[var(--recast-accent)]">Live — speak naturally</p>
+        <p className="text-center text-xs text-[var(--recast-accent)]">
+          {aslActive ? "ASL spelling — camera active" : "Live — speak naturally"}
+        </p>
         {heardText ? (
           <div className="rounded-xl border border-[var(--recast-border)]/60 bg-[var(--recast-surface-elevated)]/70 px-3 py-2 text-xs text-[var(--recast-text-muted)]">
             <span className="font-medium text-[var(--recast-text)]">You:</span> {heardText}
